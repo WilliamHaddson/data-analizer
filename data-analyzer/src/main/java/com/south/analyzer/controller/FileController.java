@@ -17,12 +17,21 @@ import org.springframework.stereotype.Component;
 
 import com.south.analyzer.service.ArquivoRegisterService;
 
+/**
+ * Controlador do caminho %HOMEPATH%/data/in
+ * 
+ * @author William
+ *
+ */
 @Component
 public class FileController {
 
 	@Autowired
 	private ArquivoRegisterService arquivoService;
 
+	/**
+	 * Monitora o caminho %HOMEPATH%/data/in
+	 */
 	public void monitorarPasta() {
 		try (WatchService servico = FileSystems.getDefault().newWatchService()){
 			
@@ -50,7 +59,10 @@ public class FileController {
 			e.printStackTrace();
 		}
 	}
-	
+
+	/**
+	 * Inicia uma thread que fará o monitoramento do caminho, paralelo ao funcionamento interno do spring boot
+	 */
 	@PostConstruct
 	public void monitorar() {
 		new Thread() {
