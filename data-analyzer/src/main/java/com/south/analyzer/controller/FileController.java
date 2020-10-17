@@ -10,10 +10,12 @@ import java.nio.file.WatchService;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import com.south.analyzer.service.ArquivoRegisterService;
 
@@ -23,16 +25,38 @@ import com.south.analyzer.service.ArquivoRegisterService;
  * @author William
  *
  */
-@Component
+@RestController
+@RequestMapping("/file")
 public class FileController {
 
 	@Autowired
 	private ArquivoRegisterService arquivoService;
+	
+	private static boolean rodar;
+	public static boolean parado = false;
 
 	/**
-	 * Monitora o caminho %HOMEPATH%/data/in
+	 * Realiza o get na URL {URl}/file, e redireciona para a view html
+	 * 
+	 * @return
 	 */
-	public void monitorarPasta() {
+	@GetMapping
+	public ModelAndView fileMonitor() {
+		ModelAndView mv = new ModelAndView("FileMonitor");
+		
+		return mv;
+	}
+	
+	/**
+	 * Inicia o monitoramento do caminho %HOMEPATH%/data/in
+	 * 
+	 * @return
+	 */
+	@PostMapping("/start")
+	public ModelAndView monitorarPasta() {
+		rodar = true;
+		parado = false;
+		ModelAndView mv = new ModelAndView("FileMonitor");
 		try (WatchService servico = FileSystems.getDefault().newWatchService()){
 			
 			Map<WatchKey, Path> mapa = new HashMap<>();
@@ -49,28 +73,39 @@ public class FileController {
 				visualizador = servico.take();
 				for (WatchEvent<?> event : visualizador.pollEvents()) {
 					Path caminhoEvent = (Path) event.context();
+					String nomeArquivo = caminhoEvent.toString();
+					String tipoArquivo = nomeArquivo.substring(nomeArquivo.length()-4);
 					
-					arquivoService.lerArquivo(caminhoEvent.toString());
+					boolean isDat = tipoArquivo.equals(".dat") ? true : false;
+					
+					if(isDat) {
+						if(!parado) {
+							arquivoService.lerArquivo(nomeArquivo);
+						}
+					}
 					
 				}
-			} while (visualizador.reset());
+			} while (visualizador.reset() && rodar);
 			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		return mv;
 	}
-
+	
 	/**
-	 * Inicia uma thread que fará o monitoramento do caminho, paralelo ao funcionamento interno do spring boot
+	 * Para o monitoramento do caminho %HOMEPATH%/data/in
+	 * 
+	 * @return
 	 */
-	@PostConstruct
-	public void monitorar() {
-		new Thread() {
-			@Override
-			public void run() {
-				monitorarPasta();
-			}
-		}.start();
+	@PostMapping("/stop")
+	public ModelAndView pararMonitoramento() {
+		ModelAndView mv = new ModelAndView("FileMonitor");
+		rodar = false;
+		parado = true;
+		
+		return mv;
 	}
 	
 }

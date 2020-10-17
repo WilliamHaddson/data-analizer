@@ -1,7 +1,5 @@
 package com.south.analyzer.model;
 
-import java.util.List;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -40,8 +38,8 @@ public class Vendedor {
 	
 	
 	/**
-	 * Lista de vendas realizadas por um vendedor
+	 * Quantidade de vendas realizadas por um vendedor
 	 */
-	private List<Venda> vendas;
+	private Integer quantidadeVendas;
 
 }

@@ -39,27 +39,33 @@ public class ArquivoRegisterService {
 	 * 
 	 * @param filename
 	 */
-	public void lerArquivo(String filename) {
+	public void lerArquivo(String nomeArquivo) {
 		vendedores = new ArrayList<>();
 		clientes = new ArrayList<>();
 		vendas = new ArrayList<>();
-		
-		if(filename.contains(".dat")) {	
-			try {
-				File arquivo = new File(System.getenv("HOMEPATH") + "/data/in/" + filename);
-				
-				FileInputStream arquivoEntrada = new FileInputStream(arquivo);
-				DataInputStream entrada = new DataInputStream(arquivoEntrada);
-				String dadosVenda = new String(entrada.readAllBytes(), "UTF-8");
-				
-				construirEntidades(dadosVenda);
+		try {
+			File arquivo = new File(System.getenv("HOMEPATH") + "/data/in/" + nomeArquivo);
+			
+			FileInputStream arquivoEntrada = new FileInputStream(arquivo);
+			DataInputStream entrada = new DataInputStream(arquivoEntrada);
+			String dadosVenda = new String(entrada.readAllBytes(), "UTF-8");
+			
+			construirEntidades(dadosVenda);
+			
+			if(vendedores.size() > 0 && clientes.size() > 0 && vendas.size() > 0) {
 				String relatorio = montarRelatorio(vendedores, clientes, vendas);
-				criarArquivo(relatorio, filename);
+				criarArquivo(relatorio, nomeArquivo);
 				
 				entrada.close();
-			} catch(Exception e) {
-				e.printStackTrace();
+			} else {
+				entrada.close();
+				
+				System.out.println("Seu arquivo não contém os dados necessários para gerar o relatório!");
+				arquivo.delete();
+				System.out.println("Arquivo excluído!");
 			}
+		} catch(IOException e) {
+			new IOException("Ocorreu um erro inesperado em nosso sistema. Tente novamente e se o erro persistir, entre em contato com nossos administradores!");
 		}
 	}
 
@@ -103,7 +109,9 @@ public class ArquivoRegisterService {
 			}
 		}
 		
-		vendedores = atribuirVendas(vendedores, vendas);
+		if(vendedores.size() > 0 && clientes.size() > 0 && vendas.size() > 0) {
+			vendedores = atribuirVendas(vendedores, vendas);
+		}
 		
 	}
 
@@ -140,16 +148,17 @@ public class ArquivoRegisterService {
 	 * @return
 	 */
 	public List<Vendedor> atribuirVendas(List<Vendedor> vendedores, List<Venda> vendas) {
-		List<Venda> vendasDoVendedor = new ArrayList<>();
+		int qtdeVendas = 0;
 		
 		for(Vendedor vendedor: vendedores) {
 			for(Venda venda : vendas) {
-				if(venda.getNomeVendedor().equals(vendedor.getNome())) {
-					vendasDoVendedor.add(venda);
+				if(venda.getNomeVendedor().contains(vendedor.getNome())) {
+					qtdeVendas++;
 				}
 			}
-			
-			vendedor.setVendas(vendasDoVendedor);
+			vendedor.setQuantidadeVendas(qtdeVendas);
+			qtdeVendas = 0;
+			System.out.println(vendedor.getQuantidadeVendas());
 		}
 		
 		return vendedores;
@@ -218,11 +227,11 @@ public class ArquivoRegisterService {
 	 */
 	public String piorVendedor(List<Vendedor> vendedores) {
 		Vendedor pior = new Vendedor();
-		pior.setVendas(new ArrayList<>());
+		pior.setQuantidadeVendas(0);
 		boolean first = true;
 		
 		for(Vendedor vendedor : vendedores) {
-			if(first || vendedor.getVendas().size() < pior.getVendas().size()) {
+			if(first || vendedor.getQuantidadeVendas() < pior.getQuantidadeVendas()) {
 				pior = vendedor;
 				first = false;
 			}
@@ -237,23 +246,23 @@ public class ArquivoRegisterService {
 		piorVendedor.append("ç");
 		piorVendedor.append(pior.getSalario());
 		piorVendedor.append(" com ");
-		piorVendedor.append(pior.getVendas().size());
+		piorVendedor.append(pior.getQuantidadeVendas());
 		piorVendedor.append(" vendas");
 		
 		return piorVendedor.toString();
 	}
 
 	/**
-	 * Cria o arquivo {filename}.done.dat, no caminho %HOMEPATH%/data/out
+	 * Cria o arquivo {nomeArquivo}.done.dat, no caminho %HOMEPATH%/data/out
 	 * 
 	 * @param relatorio
 	 * @param filename
 	 */
-	public void criarArquivo(String relatorio, String filename) {
-		filename = filename.replace(".dat", ".done.dat");
+	public void criarArquivo(String relatorio, String nomeArquivo) {
+		nomeArquivo = nomeArquivo.replace(".dat", ".done.dat");
 		
 		try {
-			File arquivo = new File(System.getenv("HOMEPATH") + "/data/out/" + filename);
+			File arquivo = new File(System.getenv("HOMEPATH") + "/data/out/" + nomeArquivo);
 			FileOutputStream arquivoSaida;
 			arquivoSaida = new FileOutputStream(arquivo);
 			DataOutputStream outStream = new DataOutputStream(arquivoSaida);
